@@ -1,5 +1,8 @@
 pragma solidity >=0.8.2 <0.9.0;
 
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
+
 contract LLMMarket{
 
     address private _owner;
@@ -14,8 +17,11 @@ contract LLMMarket{
         _;
     }
 
-    constructor(address owner) {
+    IERC20 paymentToken;
+
+    constructor(address owner, address paymentTokenAddress) {
         _owner = owner;
+        paymentToken = IERC20(paymentTokenAddress);
     }
 
     struct Hoster{
@@ -34,6 +40,12 @@ contract LLMMarket{
     mapping(address host => Request[]) public activeRequests;
     mapping(address host => bool) public paused;
 
+    function changePaymentToken(address newPaymentTokenAddress) external onlyOwner returns (bool) {
+        paymentToken = IERC20(newPaymentTokenAddress);
+        return true;
+    }
+
+
     function addHost(string memory url, address account, uint256 price) external onlyOwner returns (bool) {
         allHosts.push(Hoster(url, account, price));
         return true;
@@ -43,10 +55,24 @@ contract LLMMarket{
         for(uint256 i=0; i<allHosts.length; i++){
             if(allHosts[i].hostAccount == account){
                 delete allHosts[i];
+                for(uint u=i; u<allHosts.length-1; u++){
+                    allHosts[u] = allHosts[u+1];
+                }
+                allHosts.pop();
                 return true;
             }
         }
-        return true;
+        return false;
+    }
+
+    function changePrice(uint256 price) external returns (bool) {
+        for(uint256 i=0; i<allHosts.length; i++){
+            if(allHosts[i].hostAccount == msg.sender){
+                allHosts[i].price = price;
+                return true;
+            }
+        }
+        return false;
     }
 
     function pause() external returns (bool){
@@ -63,20 +89,18 @@ contract LLMMarket{
         return allHosts;
     }
 
-    function addRequest(uint256 code, address host) external payable returns (bool) {
+    
+    function addRequest(uint256 code, address host, uint256 value) external returns (bool) {
         require(paused[host] == false, "Currently paused!");
-        require(msg.value >= 10**15, "Insufficient funding!");
-        activeRequests[host].push(Request(code, msg.value));
+        require(value >= 10**15, "Below minimum payment!");
+        require(paymentToken.allowance(msg.sender, address(this))>=value, "Not enough allowance!");
+        paymentToken.transferFrom(msg.sender, host, value);
+        activeRequests[host].push(Request(code, value));
         return true;
     }
 
     function clearListAndReedemFunds() external returns (bool) {
-        uint256 totalSendOut = 0;
-        for(uint i = 0; i < activeRequests[msg.sender].length; i++){
-            totalSendOut = totalSendOut + activeRequests[msg.sender][i].feesPaid;
-        }
         delete activeRequests[msg.sender];
-        payable(msg.sender).transfer(totalSendOut);
         return true;
     }
 
