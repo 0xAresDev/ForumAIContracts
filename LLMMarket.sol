@@ -92,7 +92,7 @@ contract LLMMarket{
     
     function addRequest(uint256 code, address host, uint256 value) external returns (bool) {
         require(paused[host] == false, "Currently paused!");
-        require(value >= 10**15, "Below minimum payment!");
+        require(value >= 100, "Below minimum payment!");
         require(paymentToken.allowance(msg.sender, address(this))>=value, "Not enough allowance!");
         paymentToken.transferFrom(msg.sender, host, value);
         activeRequests[host].push(Request(code, value));
