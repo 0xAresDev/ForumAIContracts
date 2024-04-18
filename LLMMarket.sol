@@ -18,10 +18,12 @@ contract LLMMarket{
     }
 
     IERC20 paymentToken;
+    address public forumAIAddress;
 
-    constructor(address owner, address paymentTokenAddress) {
+    constructor(address owner, address paymentTokenAddress, address _forumAIAddress) {
         _owner = owner;
         paymentToken = IERC20(paymentTokenAddress);
+        forumAIAddress = _forumAIAddress;
     }
 
     struct Hoster{
@@ -45,6 +47,10 @@ contract LLMMarket{
         return true;
     }
 
+    function changeForumAIAddress(address newAddress) onlyOwner external returns(bool){
+        forumAIAddress = newAddress;
+        return true;
+    }
 
     function addHost(string memory url, address account, uint256 price) external onlyOwner returns (bool) {
         allHosts.push(Hoster(url, account, price));
@@ -89,12 +95,13 @@ contract LLMMarket{
         return allHosts;
     }
 
-    
+
     function addRequest(uint256 code, address host, uint256 value) external returns (bool) {
         require(paused[host] == false, "Currently paused!");
         require(value >= 100, "Below minimum payment!");
         require(paymentToken.allowance(msg.sender, address(this))>=value, "Not enough allowance!");
-        paymentToken.transferFrom(msg.sender, host, value);
+        paymentToken.transferFrom(msg.sender, host, value * 95 / 100);
+        paymentToken.transferFrom(msg.sender, forumAIAddress, value * 5 / 100);
         activeRequests[host].push(Request(code, value));
         return true;
     }
