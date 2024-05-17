@@ -3,27 +3,25 @@ pragma solidity >=0.8.2 <0.9.0;
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 
-contract LLMMarket{
+contract Mixtral8x7BModelMarket{
 
-    address private _owner;
+    address private _proofOfStakeContract;
     //bool public paused;
 
     error Unauthorized(address account);
 
-    modifier onlyOwner(){
-        if(msg.sender!=_owner){
+    modifier onlyProofOfStake(){
+        if(msg.sender!=_proofOfStakeContract){
             revert Unauthorized(msg.sender);
         }
         _;
     }
 
     IERC20 paymentToken;
-    address public forumAIAddress;
 
-    constructor(address owner, address paymentTokenAddress, address _forumAIAddress) {
-        _owner = owner;
+    constructor(address proofOfStakeContract, address paymentTokenAddress) {
+        _proofOfStakeContract = proofOfStakeContract;
         paymentToken = IERC20(paymentTokenAddress);
-        forumAIAddress = _forumAIAddress;
     }
 
     struct Hoster{
@@ -42,22 +40,12 @@ contract LLMMarket{
     mapping(address host => Request[]) public activeRequests;
     mapping(address host => bool) public paused;
 
-    function changePaymentToken(address newPaymentTokenAddress) external onlyOwner returns (bool) {
-        paymentToken = IERC20(newPaymentTokenAddress);
-        return true;
-    }
-
-    function changeForumAIAddress(address newAddress) onlyOwner external returns(bool){
-        forumAIAddress = newAddress;
-        return true;
-    }
-
-    function addHost(string memory url, address account, uint256 price) external onlyOwner returns (bool) {
+    function addHost(string memory url, address account, uint256 price) external onlyProofOfStake returns (bool) {
         allHosts.push(Hoster(url, account, price));
         return true;
     }
 
-    function removeHost(address account) external onlyOwner returns (bool) {
+    function removeHost(address account) external onlyProofOfStake returns (bool) {
         for(uint256 i=0; i<allHosts.length; i++){
             if(allHosts[i].hostAccount == account){
                 delete allHosts[i];
@@ -91,17 +79,23 @@ contract LLMMarket{
         return true;
     }
 
+
+    function pauseFromProofOfStake(address node) onlyProofOfStake external returns (bool) {
+        paused[node] = true;
+        return true;
+    }
+
+
     function getHosts() external view returns (Hoster[] memory){
         return allHosts;
     }
 
-
+    
     function addRequest(uint256 code, address host, uint256 value) external returns (bool) {
         require(paused[host] == false, "Currently paused!");
         require(value >= 100, "Below minimum payment!");
         require(paymentToken.allowance(msg.sender, address(this))>=value, "Not enough allowance!");
-        paymentToken.transferFrom(msg.sender, host, value * 95 / 100);
-        paymentToken.transferFrom(msg.sender, forumAIAddress, value * 5 / 100);
+        paymentToken.transferFrom(msg.sender, host, value);
         activeRequests[host].push(Request(code, value));
         return true;
     }
