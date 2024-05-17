@@ -7,12 +7,8 @@ contract USDC is ERC20 {
 
     constructor() ERC20("USDC", "USDC") {}
 
-    function mint() external{
-        _mint(msg.sender, 5 * (10 ** 6));
-    }
-
-    function decimals() public view override returns (uint8) {
-        return 6;
+    function mint(uint256 value) external{
+        _mint(msg.sender, value);
     }
 
 
