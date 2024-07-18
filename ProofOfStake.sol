@@ -1,13 +1,13 @@
 pragma solidity >=0.8.2 <0.9.0;
 
-import {Mixtral8x7BModelMarket} from "./ModelMarket.sol";
+import {Mixtral8x7BMarket} from "./Mixtral8xModelMarket.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 
-contract ProofOfStakeForumAI{
+contract POSForumAI{
 
     IERC20 public paymentToken;
-    Mixtral8x7BModelMarket public modelMarket;
+    Mixtral8x7BMarket public modelMarket;
 
     error Unauthorized(address account);
 
@@ -33,47 +33,41 @@ contract ProofOfStakeForumAI{
 
     constructor(address paymentTokenAddress, address _owner) {
         paymentToken = IERC20(paymentTokenAddress);
-        modelMarket = new Mixtral8x7BModelMarket(address(this), paymentTokenAddress);
+        modelMarket = new Mixtral8x7BMarket(address(this), paymentTokenAddress);
         owner = _owner;
     }
 
-    function addNode(string memory url, uint256 price) external returns (bool){
+    function addNode(string memory url, uint256 price) external{
         require(paymentToken.allowance(msg.sender, address(this))>=1000 ether, "Not enough allowance!");
         require(nodeStakers[msg.sender]==false, "Already staked with this address!");
         paymentToken.transferFrom(msg.sender, address(this), 1000 ether);
         nodeStakers[msg.sender] = true;
         modelMarket.addHost(url, msg.sender, price);
-        return true;
     }
 
-    function removeNode() external returns (bool){
+    function removeNode() external{
         require(nodeStakers[msg.sender]==true, "Not staked yet!");
         nodeStakers[msg.sender] = false;
         modelMarket.removeHost(msg.sender);
         paymentToken.transfer(msg.sender, 1000 ether);
-        return true;
     }
 
-    function addValidator(address validator) onlyOwner external returns (bool){
+    function addValidator(address validator) onlyOwner external{
         validators[validator] = true;
-        return true;
     }
 
-    function removeValidator(address validator) onlyOwner external returns (bool){
+    function removeValidator(address validator) onlyOwner external{
         validators[validator] = false;
-        return true;
     }
 
-    function slashNode(address nodeToSlash) onlyValidators external returns (bool){
+    function slashNode(address nodeToSlash) onlyValidators external{
         require(nodeStakers[nodeToSlash], "Not a node!");
         nodeStakers[nodeToSlash] = false;
         modelMarket.removeHost(nodeToSlash);
-        return true;
     }
 
-    function pauseNode(address nodeToPause) onlyValidators external returns (bool){
+    function pauseNode(address nodeToPause) onlyValidators external{
         require(nodeStakers[nodeToPause], "Not a node!");
         modelMarket.pauseFromProofOfStake(nodeToPause);
-        return true;
     }
 }
