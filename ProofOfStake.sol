@@ -41,9 +41,9 @@ contract POSForumAI{
     }
 
     function addNode(string memory url, uint256 price) external{
-        require(paymentToken.allowance(msg.sender, address(this))>=1000 ether, "Not enough allowance!");
+        require(paymentToken.allowance(msg.sender, address(this))>=1000*(10**6), "Not enough allowance!");
         require(nodeStakers[msg.sender]==false, "Already staked with this address!");
-        paymentToken.transferFrom(msg.sender, address(this), 1000 ether);
+        paymentToken.transferFrom(msg.sender, address(this), 1000*(10**6));
         nodeStakers[msg.sender] = true;
         modelMarket.addHost(url, msg.sender, price);
     }
@@ -52,7 +52,7 @@ contract POSForumAI{
         require(nodeStakers[msg.sender]==true, "Not staked yet!");
         nodeStakers[msg.sender] = false;
         modelMarket.removeHost(msg.sender);
-        paymentToken.transfer(msg.sender, 1000 ether);
+        paymentToken.transfer(msg.sender, 1000*(10**6));
     }
 
     function addValidator(address validator) onlyOwner external{
